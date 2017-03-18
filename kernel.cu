@@ -15,13 +15,23 @@
 
 #include "kernels/scan.h"
 #include "kernels/mask.h"
+#include "kernels/compressed_mask.h"
+#include "kernels/counts.h"
+#include "kernels/symbols.h"
 
 /******************************************
 			MAIN FUNCTION
 ******************************************/
-int main()
-{
+void run_tests() {
 	test_scan(&cudaScan);
 	test_mask(&cudaMask);
+	test_compressed_mask(&cudaCompressedMask);
+	test_counts(&cudaCounts);
+	test_symbols(&cudaSymbols);
+}
+
+int main()
+{
+	run_tests();
     return 0;
 }
