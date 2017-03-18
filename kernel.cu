@@ -58,7 +58,14 @@ void rle(char *data, int length) {
 }
 
 void rle_large_data() {
+	int size = 60 * MB;
+	char *data = (char*)_malloc(sizeof(char) * size);
+	for (int i = 0; i < size; i++) {
+		data[i] = i > 30*MB? 'b' : 'a';
+	}
 
+	rle(data, size);
+	free(data);
 }
 
 void rle_small_data() {
@@ -69,7 +76,8 @@ void rle_small_data() {
 
 int main()
 {
-	run_tests();
-	rle_small_data();
+	//run_tests();
+	//rle_small_data();
+	rle_large_data();
     return 0;
 }
