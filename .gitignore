@@ -2,3 +2,6 @@ Debug/
 vc140.pdb
 rle_cuda.vcxproj.user
 .vs/
+rle_cuda.*
+!rle_cuda.sln
+x64/
