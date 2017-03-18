@@ -4,4 +4,5 @@ rle_cuda.vcxproj.user
 .vs/
 rle_cuda.*
 !rle_cuda.sln
+!rle_cuda.vcxproj
 x64/
