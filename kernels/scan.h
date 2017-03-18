@@ -9,9 +9,10 @@
 #include "../utils/c_utils.h"
 #include "../utils/consts.h"
 
-void cudaScan(int *arr, const int length, int** out);
+void cudaScan(int *arr, const int length, int** out, bool inclusive);
 __global__ void scanKernel(int *data, const int len, int *out);
 __global__ void addPerBlockKernel(int *data, int *toAdd);
+__global__ void addVectorsKernel(int *data, int *toAdd, int length);
 
 /* KERNEL FUNCTIONS */
 __global__ void scanKernel(int *data, const int len, int *out)
@@ -64,8 +65,21 @@ __global__ void addPerBlockKernel(int *data, int *toAdd)
 	data[tbid] += toAdd[tbid / threadCount];
 }
 
+__global__ void addVectorsKernel(int *data, int *toAdd, int length) {
+	const int threadCount = 1024;
+	const int log_1024 = 10;
+
+	int blockCount = gridDim.x;
+	int tbid = blockIdx.x*threadCount + threadIdx.x;
+	int id = threadIdx.x;
+	int offset = blockIdx.x * threadCount;
+
+	if (tbid >= length) return;
+	data[tbid] += toAdd[tbid];
+}
+
 // CAN SERVE A MAX OF 65535 KB OF DATA
-void cudaScan(int *data, const int length, int **out) {
+void cudaScan(int *data, const int length, int **out, bool inclusive) {
 	int *dev_data;
 
 	*out = (int*)_malloc(sizeof(int)*length);
@@ -90,23 +104,35 @@ void cudaScan(int *data, const int length, int **out) {
 			else remaining[i] = (*out)[(i + 1)*MAX_THREADS_PER_BLOCK - 1] + data[length - 1];
 		}
 		int *scanned;
-		cudaScan(remaining, blockCount, &scanned);
+		cudaScan(remaining, blockCount, &scanned,false);
 
 		int *dev_scanned;
 		_cudaMalloc((void**)&dev_scanned, blockCount * sizeof(int));
-		_cudaMemset((void*)dev_data, 0, blockCount *sizeof(int));
-
+		_cudaMemset((void*)dev_scanned, 0, blockCount *sizeof(int));
 		_cudaMemcpy(dev_scanned, scanned, blockCount * sizeof(int), cudaMemcpyHostToDevice);
 
 		addPerBlockKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, dev_scanned);
 
-		_cudaMemcpy(*out, dev_data, length * sizeof(int), cudaMemcpyDeviceToHost);
+		
 
 		cudaFree(dev_scanned);
 
 		free(scanned);
 		free(remaining);
 	}
+
+	if (inclusive) {
+		int *values;
+		_cudaMalloc((void**)&values, blockCount * MAX_THREADS_PER_BLOCK *sizeof(int));
+		_cudaMemset((void*)values, 0, blockCount * MAX_THREADS_PER_BLOCK *sizeof(int));
+		_cudaMemcpy(values, data, length * sizeof(int), cudaMemcpyHostToDevice);
+
+		addVectorsKernel << <blockCount,MAX_THREADS_PER_BLOCK >> >(dev_data,values,length);
+
+		cudaFree(values);
+	}
+
+	_cudaMemcpy(*out, dev_data, length * sizeof(int), cudaMemcpyDeviceToHost);
 
 	cudaFree(dev_data);
 }

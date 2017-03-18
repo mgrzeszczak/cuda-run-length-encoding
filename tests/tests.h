@@ -3,7 +3,7 @@
 #include "../utils/c_utils.h"
 #include <stdarg.h>
 
-void test_scan(void(*cudaScan)(int *, const int , int **)) {
+void test_scan(void(*cudaScan)(int *, const int , int **, bool)) {
 	int len = 1024;
 	int n = 16;
 	// n = 17 wont pass because limit of blocks will be exceeded (64 MB of data - max blocks is 65535*1024 < 64 MB)
@@ -15,11 +15,11 @@ void test_scan(void(*cudaScan)(int *, const int , int **)) {
 		}
 
 		int *out;
-		cudaScan(arr, len, &out);
+		cudaScan(arr, len, &out,true);
 
 		int l = out[len - 1];
 
-		if (out[len - 1] != len - 1) ERR("test_scan %d failed", i);
+		if (out[len - 1] != len ) printf("test_scan %d failed\n", i);
 		else printf("test_scan [%d] - SUCCESS\n",i+1);
 		free(arr);
 		free(out);
@@ -27,7 +27,7 @@ void test_scan(void(*cudaScan)(int *, const int , int **)) {
 	}
 }
 
-void test_mask(void(*cudaMask)(int *, const int, int **)) {
+void test_mask(void(*cudaMask)(char *, const int, int **)) {
 	srand(123);
 
 	int len = 1024;
@@ -38,11 +38,11 @@ void test_mask(void(*cudaMask)(int *, const int, int **)) {
 	for (int i = 0; i < n; i++) {
 
 		for (int j = 0; j < m; j++) {
-			int *data = (int*)malloc(sizeof(int)*len);
+			char *data = (char*)malloc(sizeof(char)*len);
 
 			int expected = len;
 			for (int i = 0; i < len; i++) {
-				data[i] = rand() % max;
+				data[i] = (char)(rand() % max);
 				if (i > 0 && data[i - 1] == data[i]) expected--;
 			}
 

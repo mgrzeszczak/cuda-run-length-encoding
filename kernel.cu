@@ -30,8 +30,46 @@ void run_tests() {
 	test_symbols(&cudaSymbols);
 }
 
+void rle(char *data, int length) {
+	// for now data assumed < 64 MB
+	int *mask;
+	cudaMask(data, length, &mask);
+	int *scannedMask;
+	cudaScan(mask, length, &scannedMask, true);
+	int *compressedMask;
+	int compressedLength;
+	cudaCompressedMask(scannedMask, length, &compressedMask, &compressedLength);
+
+	int *counts;
+	char* symbols;
+	cudaCounts(compressedMask, compressedLength, &counts);
+	cudaSymbols(compressedMask, compressedLength, data, length, &symbols);
+
+	int outLength = compressedLength - 1;
+	for (int i = 0; i < outLength; i++) {
+		printf("%c x %d\n", symbols[i], counts[i]);
+	}
+
+	free(mask);
+	free(scannedMask);
+	free(compressedMask);
+	free(counts);
+	free(symbols);
+}
+
+void rle_large_data() {
+
+}
+
+void rle_small_data() {
+	char data[] = { 'a','a','a','a', 'b','b','b','b' };
+	int length = 8;
+	rle(data, length);
+}
+
 int main()
 {
 	run_tests();
+	rle_small_data();
     return 0;
 }
