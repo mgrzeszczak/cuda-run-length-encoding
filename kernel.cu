@@ -22,5 +22,6 @@
 int main()
 {
 	test_scan(&cudaScan);
+	test_mask(&cudaMask);
     return 0;
 }

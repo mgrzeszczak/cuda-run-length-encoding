@@ -34,13 +34,13 @@ void _cudaMemcpy(void *dest, const void *src, size_t size, cudaMemcpyKind kind) 
 	}
 }
 
-void _cudaDeviceSynchronize() {
+void _cudaDeviceSynchronize(char* s) {
 	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
-		ERR("scan launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		ERR("%s launch failed: %s\n",s, cudaGetErrorString(cudaStatus));
 	}
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
-		ERR("cudaDeviceSynchronize returned error code %d after launching scan!\n", cudaStatus);
+		ERR("cudaDeviceSynchronize returned error code %d after launching %s!\n",cudaStatus,s);
 	}
 }

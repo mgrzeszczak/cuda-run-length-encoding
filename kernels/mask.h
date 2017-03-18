@@ -30,18 +30,24 @@ __global__ void maskKernel(int *data, int *mask) {
 // CAN SERVE A MAX OF 65535 KB OF DATA
 void cudaMask(int *data, const int length, int **mask) {
 	int *dev_data;
+	int *dev_mask;
 
 	*mask = (int*)_malloc(sizeof(int)*length);
 	int blockCount = ceil(((float)(length) / MAX_THREADS_PER_BLOCK));
 
 	_cudaSetDevice(0);
+
 	_cudaMalloc((void**)&dev_data, blockCount * MAX_THREADS_PER_BLOCK * sizeof(int));
 	_cudaMemset((void*)dev_data, 0, blockCount * MAX_THREADS_PER_BLOCK *sizeof(int));
 	_cudaMemcpy(dev_data, data, length * sizeof(int), cudaMemcpyHostToDevice);
 
-	maskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, NULL);
+	_cudaMalloc((void**)&dev_mask, blockCount * MAX_THREADS_PER_BLOCK * sizeof(int));
 
-	_cudaDeviceSynchronize();
-	_cudaMemcpy(*mask, dev_data, length * sizeof(int), cudaMemcpyDeviceToHost);
+	maskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, dev_mask);
+
+	_cudaDeviceSynchronize("cudaMask");
+
+	_cudaMemcpy(*mask, dev_mask, length * sizeof(int), cudaMemcpyDeviceToHost);
 	cudaFree(dev_data);
+	cudaFree(dev_mask);
 }

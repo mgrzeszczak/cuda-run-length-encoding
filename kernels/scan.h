@@ -78,7 +78,7 @@ void cudaScan(int *data, const int length, int **out) {
 	_cudaMemcpy(dev_data, data, length * sizeof(int), cudaMemcpyHostToDevice);
 	scanKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, length, NULL);
 
-	_cudaDeviceSynchronize();
+	_cudaDeviceSynchronize("cudaScan");
 	_cudaMemcpy(*out, dev_data, length * sizeof(int), cudaMemcpyDeviceToHost);
 
 	if (blockCount > 1) {

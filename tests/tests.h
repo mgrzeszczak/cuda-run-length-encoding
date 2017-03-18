@@ -26,8 +26,39 @@ void test_scan(void(*cudaScan)(int *, const int , int **)) {
 	}
 }
 
-void test_mask() {
+void test_mask(void(*cudaMask)(int *, const int, int **)) {
+	srand(123);
+
 	int len = 1024;
-	int *data = (int*)malloc(sizeof(int)*len);
-	for (int i = 0; i < len; i++) data[i] = i;
+	int max = 10;
+	
+	int n = 16;
+	int m = 3;
+	for (int i = 0; i < n; i++) {
+
+		for (int j = 0; j < m; j++) {
+			int *data = (int*)malloc(sizeof(int)*len);
+
+			int expected = len;
+			for (int i = 0; i < len; i++) {
+				data[i] = rand() % max;
+				if (i > 0 && data[i - 1] == data[i]) expected--;
+			}
+
+			int *mask;
+			cudaMask(data, len, &mask);
+
+			int sum = 0;
+			for (int i = 0; i < len; i++) {
+				sum += mask[i];
+			}
+			
+			if (sum != expected) ERR("test_scan %d - FAILED\n", m*i+j+1);
+			else printf("test_mask [%d] - SUCCESS\n", m*i+j+1);
+
+			free(data);
+			free(mask);
+		}
+		len = len << 1;
+	}
 }
