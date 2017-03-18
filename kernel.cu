@@ -6,29 +6,23 @@
 
 #include <stdio.h>
 #include <cmath>
-/******************************************
-			MACROS
-******************************************/
-#define ERR(s,...) (fprintf(stderr, s,__VA_ARGS__),\
-						exit(EXIT_FAILURE))
-/******************************************
-			CONSTANTS
-******************************************/
-#define KB 1024
-#define MB KB*1024
-#define MAX_THREADS_PER_BLOCK 1024
-#define MAX_BLOCKS_PER_GRID 65535
 
+#include "cuda_utils.h"
+#include "c_utils.h"
+#include "consts.h"
+#include "tests.h"
 /******************************************
 			FUNCTION DECLARATIONS
 ******************************************/
 __global__ void scanKernel(int *data, const int len, int *out);
 __global__ void addPerBlockKernel(int *data, int *toAdd);
 
+__global__ void maskKernel(int *data, int *mask);
+__global__ void compressedMaskKernel(int *mask, int *compressedMask);
+__global__ void compressedMaskKernel(int *data, int *compressedMask, int* runLengths, int* runSymbols);
+
 cudaError_t cudaScan(int *arr, const int length, int** out);
 
-/* TESTS */
-void test_scan();
 /******************************************
 			FUNCTION CODE
 ******************************************/
@@ -84,19 +78,63 @@ __global__ void addPerBlockKernel(int *data, int *toAdd)
 	data[tbid] += toAdd[tbid / threadCount];
 }
 
+__global__ void maskKernel(int *data, int *mask) {
+	const int threadCount = 1024;
+	const int log_1024 = 10;
 
-/* HELPER FUNCTIONS */
+	int blockCount = gridDim.x;
+	int tbid = blockIdx.x*threadCount + threadIdx.x;
+	int id = threadIdx.x;
+	int offset = blockIdx.x * threadCount;
+
+	if (tbid == 0) mask[tbid] = 1;
+	else {
+		mask[tbid] = !(data[tbid] == data[tbid - 1]);
+	}
+}
+__global__ void compressedMaskKernel(int *mask, int *compressedMask) {
+
+}
+__global__ void compressedMaskKernel(int *data, int *compressedMask, int* runLengths, int* runSymbols) {
+
+}
+
+/* HELPER CUDA FUNCTIONS */
+
+
 
 /* KERNEL WRAPPING FUNCTIONS */
+
+// CAN SERVE A MAX OF 65535 KB OF DATA
+void cudaMask(int *data, const int length, int **mask) {
+	int *dev_data;
+
+	*mask = (int*)_malloc(sizeof(int)*length);
+	int blockCount = ceil(((float)(length) / MAX_THREADS_PER_BLOCK));
+
+	_cudaSetDevice(0);
+	_cudaMalloc((void**)&dev_data, blockCount * MAX_THREADS_PER_BLOCK * sizeof(int));
+	_cudaMemset((void*)dev_data, 0, blockCount * MAX_THREADS_PER_BLOCK *sizeof(int));
+	_cudaMemcpy(dev_data, data, length * sizeof(int), cudaMemcpyHostToDevice);
+
+	maskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data,NULL);
+
+	_cudaDeviceSynchronize();
+	_cudaMemcpy(*mask, dev_data, length * sizeof(int), cudaMemcpyDeviceToHost);
+	cudaFree(dev_data);
+}
+
+
+// CAN SERVE A MAX OF 65535 KB OF DATA
 cudaError_t cudaScan(int *data, const int length, int **out) {
 	int *dev_data;
 	cudaError_t cudaStatus;
 
-	int count = 0;
-	for (int i = 0; i < length; i++) count++;
-	printf("counted %d\n\n", count);
+	//int count = 0;
+	//for (int i = 0; i < length; i++) count++;
+	//	printf("counted %d\n\n", count);
 
-	*out = (int*)malloc(sizeof(int)*length);
+	*out = (int*)_malloc(sizeof(int)*length);
 	if (*out == NULL) ERR("Failed to malloc out cudaScan");
 
 	cudaStatus = cudaSetDevice(0);
@@ -157,7 +195,7 @@ cudaError_t cudaScan(int *data, const int length, int **out) {
 		cudaScan(remaining, blockCount, &scanned);
 
 		int *dev_scanned;
-		cudaStatus = cudaMalloc((void**)&dev_scanned, blockCount * sizeof(int));
+		_cudaMalloc((void**)&dev_scanned, blockCount * sizeof(int));
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "cudaMalloc failed!");
 			goto Error;
@@ -179,12 +217,6 @@ cudaError_t cudaScan(int *data, const int length, int **out) {
 		}
 		cudaFree(dev_scanned);
 
-		/*
-		for (int i = 0; i < length; i++) {
-			(*out)[i] += scanned[i/MAX_THREADS_PER_BLOCK];
-		}
-		*/
-
 		free(scanned);
 		free(remaining);
 	}
@@ -195,38 +227,11 @@ Error:
 }
 
 
-void test_scan() {
-	int len = 1024;
-	int n = 16;
-	// n = 17 wont pass because limit of blocks will be exceeded (64 MB of data - max blocks is 65535*1024 < 64 MB)
-	for (int i = 0; i < n; i++) {
-		int *arr = (int*)malloc(sizeof(int)*len);
-		if (arr == NULL) {
-			printf("Failed to allocate memory\n");
-			exit(1);
-		}
-
-		for (int i = 0; i < len; i++) {
-			arr[i] = 1;
-		}
-
-		int *out;
-		cudaScan(arr, len, &out);
-
-		int l = out[len - 1];
-
-		if (out[len - 1] != len-1) ERR("test_scan %d failed",i);
-		free(arr);
-		free(out);
-		len = len << 1;
-	}
-}
-
 /******************************************
 			MAIN FUNCTION
 ******************************************/
 int main()
 {
-	test_scan();
+	test_scan(&cudaScan);
     return 0;
 }
