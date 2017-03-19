@@ -19,6 +19,8 @@
 #include "kernels/counts.h"
 #include "kernels/symbols.h"
 
+#include "rle/rle.h"
+
 /******************************************
 			MAIN FUNCTION
 ******************************************/
@@ -233,15 +235,55 @@ void rle_large_data(int megabytes) {
 }
 
 void rle_small_data() {
-	char data[] = { 'a','a','a','a', 'b','b','b','b' };
-	int length = 8;
-	rle(data, length, true);
+
+	int length = 1040;
+	char *data = (char*)_malloc(sizeof(char)*length);
+	for (int i = 0; i < length; i++)  data[i] = 'a';
+
+	//char data[] = { 'a','a','a','a', 'b','b','b','b' };
+	//int length = 8;
+	//rle(data, length, true);
+
+	int out_length;
+	char *symbols;
+	int *runs;
+
+	parallel_rle(data, length, &symbols, &runs, &out_length);
+
+	for (int i = 0; i < out_length; i++) {
+		printf("%c x %d\n", symbols[i], runs[i]);
+	}
+}
+
+void rle_gpu_large(int megabytes) {
+	srand(123);
+	int size = megabytes * MB;
+	char *data = (char*)_malloc(sizeof(char) * size);
+
+	printf("Generating %d MB of data...\n", megabytes);
+	for (int i = 0; i < size; i++) {
+		data[i] = rand() % 4 + 'a';
+	}
+
+	printf("Running parallel RLE...\n");
+
+
+	char *symbols;
+	int out_length;
+	int *runs;
+	parallel_rle(data, size, &symbols, &runs, &out_length);
+
+	printf("Compressed size: %d\n", out_length);
+
+	cpu_rle(data, size);
+	free(data);
 }
 
 int main()
 {
 	//run_tests();
 	//rle_small_data();
-	rle_large_data(100);
+	//rle_large_data(100);
+	rle_gpu_large(50);
     return 0;
 }

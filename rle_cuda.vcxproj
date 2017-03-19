@@ -157,6 +157,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="kernels\compressed_mask.h" />
     <ClInclude Include="kernels\counts.h" />
     <ClInclude Include="kernels\symbols.h" />
+    <ClInclude Include="rle\rle.h" />
     <ClInclude Include="utils\consts.h" />
     <ClInclude Include="utils\cuda_utils.h" />
     <ClInclude Include="utils\c_utils.h" />

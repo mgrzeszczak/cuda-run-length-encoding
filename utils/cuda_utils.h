@@ -23,7 +23,7 @@ void _cudaMalloc(void **dest, size_t size) {
 void _cudaMemset(void *dest, int val, size_t size) {
 	cudaError_t cudaStatus = cudaMemset(dest, 0, size);
 	if (cudaStatus != cudaSuccess) {
-		ERR("cudaMalloc failed!");
+		ERR("cudaMemset failed!");
 	}
 }
 

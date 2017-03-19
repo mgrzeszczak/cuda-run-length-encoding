@@ -11,3 +11,5 @@
 #define MB KB*1024
 #define MAX_THREADS_PER_BLOCK 1024
 #define MAX_BLOCKS_PER_GRID 65535
+
+#define DEBUG false
