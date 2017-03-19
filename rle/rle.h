@@ -16,9 +16,9 @@
 #include "../kernels/counts.h"
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length);
-void rle_batch(char *data, int length, char **symbols, int** runs, int *out_length);
+void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length);
 
-void rle_batch(char *data, int length, char **symbols, int** runs, int *out_length) {
+void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length) {
 	// GPU MEMORY
 	char* d_data;
 	int *d_mask;
@@ -31,10 +31,12 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 
 	int blockCount = ceil(((float)(length) / MAX_THREADS_PER_BLOCK));
 
-	// 60MB CHUNKS
+	
 	// allocate gpu memory
 	_cudaMalloc((void**)&d_data, blockCount*MAX_THREADS_PER_BLOCK*sizeof(char));
 	_cudaMalloc((void**)&d_mask, blockCount*MAX_THREADS_PER_BLOCK*sizeof(int));
+
+	// total 300 MB
 
 	_cudaMemcpy(d_data, data, length * sizeof(char), cudaMemcpyHostToDevice);
 
@@ -84,10 +86,14 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 	_cudaMalloc((void**)&d_compressed_mask, blockCount*MAX_THREADS_PER_BLOCK*sizeof(int)); // 240MB
 	_cudaMalloc((void**)&d_compressed_length, sizeof(int)); // 240MB
 
+	// total 780MB
+
 	compressedMaskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(d_mask, d_compressed_mask, d_compressed_length, length);
 	_cudaDeviceSynchronize("cudaCompressedMask");
 
 	cudaFree(d_mask);
+
+	// total 540MB
 
 	int compressedLength;
 	_cudaMemcpy(&compressedLength, d_compressed_length, sizeof(int), cudaMemcpyDeviceToHost);
@@ -108,20 +114,19 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 	cudaFree(d_compressed_length);
 	cudaFree(d_compressed_mask);
 
-
 	*out_length = compressedLength - 1;
-	*symbols = (char*)_malloc(sizeof(char)*(*out_length));
-	*runs = (int*)_malloc(sizeof(int)*(*out_length));
+	//*symbols = (char*)_malloc(sizeof(char)*(*out_length));
+	//*runs = (int*)_malloc(sizeof(int)*(*out_length));
 
-	_cudaMemcpy(*symbols, d_symbols, sizeof(char)*(*out_length), cudaMemcpyDeviceToHost);
-	_cudaMemcpy(*runs, d_runs, sizeof(int)*(*out_length), cudaMemcpyDeviceToHost);
+	_cudaMemcpy(symbols, d_symbols, sizeof(char)*(*out_length), cudaMemcpyDeviceToHost);
+	_cudaMemcpy(runs, d_runs, sizeof(int)*(*out_length), cudaMemcpyDeviceToHost);
 
 	cudaFree(d_runs);
 	cudaFree(d_symbols);
 }
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length) {
-	int step = 60 * MB;
+	int step = 63 * MB;
 
 	int inputLength = length;
 
@@ -132,13 +137,13 @@ void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_l
 	out_symbols = (char*)_malloc(sizeof(char)*length);
 	out_runs = (int*)_malloc(sizeof(int)*length);
 	
+	char *part_symbols = (char*)_malloc(sizeof(char)*step);
+	int *part_runs = (int*)_malloc(sizeof(int)*step);
+	int part_length;
 
 	while (length > step) {
-		char *part_symbols;
-		int *part_runs;
-		int part_length;
 
-		rle_batch(data, step, &part_symbols, &part_runs, &part_length);
+		rle_batch(data, step, part_symbols, part_runs, &part_length);
 
 		int position = processed_length;
 		processed_length += part_length;
@@ -156,15 +161,9 @@ void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_l
 		length -= step;
 		data += step;
 
-		free(part_symbols);
-		free(part_runs);
 	}
 
-	char *part_symbols;
-	int *part_runs;
-	int part_length;
-
-	rle_batch(data, length, &part_symbols, &part_runs, &part_length);
+	rle_batch(data, length, part_symbols, part_runs, &part_length);
 
 	int position = processed_length;
 	processed_length += part_length;
