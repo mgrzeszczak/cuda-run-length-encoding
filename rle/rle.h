@@ -15,14 +15,10 @@
 #include "../kernels/symbols.h"
 #include "../kernels/counts.h"
 
-
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length);
 void rle_batch(char *data, int length, char **symbols, int** runs, int *out_length);
 
-
 void rle_batch(char *data, int length, char **symbols, int** runs, int *out_length) {
-	// use kernels only if possible and allocate memory once
-
 	// GPU MEMORY
 	char* d_data;
 	int *d_mask;
@@ -37,10 +33,9 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 
 	// 60MB CHUNKS
 	// allocate gpu memory
-	_cudaMalloc((void**)&d_data, blockCount*MAX_THREADS_PER_BLOCK*sizeof(char)); // 60MB
-	_cudaMalloc((void**)&d_mask, blockCount*MAX_THREADS_PER_BLOCK*sizeof(int)); // 240MB
+	_cudaMalloc((void**)&d_data, blockCount*MAX_THREADS_PER_BLOCK*sizeof(char));
+	_cudaMalloc((void**)&d_mask, blockCount*MAX_THREADS_PER_BLOCK*sizeof(int));
 
-																				// 300 MB ALLOCATED ALREADY
 	_cudaMemcpy(d_data, data, length * sizeof(char), cudaMemcpyHostToDevice);
 
 	// CALCULATE MASK
@@ -48,18 +43,19 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 	_cudaDeviceSynchronize("cudaMask");
 
 	// SCAN MASK
-
-
 	cudaScanGpuMem(d_mask, length, true);
+	
+	/*
 	int *c_data = (int*)_malloc(sizeof(int)*length);
 	_cudaMemcpy(c_data, d_mask, sizeof(int)*length, cudaMemcpyDeviceToHost);
 
-	/*
 	printf("Scanned\n");
 	for (int i = 0; i < length; i++) {
 	printf("%d ", c_data[i]);
 	}
-	printf("\n");*/
+	printf("\n");
+	*/
+
 
 	/* MEMORY HEAVY SCAN */
 	/*
@@ -125,5 +121,69 @@ void rle_batch(char *data, int length, char **symbols, int** runs, int *out_leng
 }
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length) {
+	int step = 60 * MB;
+
+	int inputLength = length;
+
+	char *out_symbols;
+	int *out_runs;
+	int processed_length = 0;
+
+	out_symbols = (char*)_malloc(sizeof(char)*length);
+	out_runs = (int*)_malloc(sizeof(int)*length);
 	
+
+	while (length > step) {
+		char *part_symbols;
+		int *part_runs;
+		int part_length;
+
+		rle_batch(data, step, &part_symbols, &part_runs, &part_length);
+
+		int position = processed_length;
+		processed_length += part_length;
+		int offset = 0;
+		if (position > 0 && out_symbols[position - 1] == part_symbols[0]) {
+			out_runs[position - 1] += part_runs[0];
+			offset = 1;
+			processed_length -= 1;
+			part_length -= 1;
+		}
+
+		memcpy(out_symbols + position, part_symbols + offset, sizeof(char)*part_length);
+		memcpy(out_runs + position, part_runs + offset, sizeof(int)*part_length);
+
+		length -= step;
+		data += step;
+
+		free(part_symbols);
+		free(part_runs);
+	}
+
+	char *part_symbols;
+	int *part_runs;
+	int part_length;
+
+	rle_batch(data, length, &part_symbols, &part_runs, &part_length);
+
+	int position = processed_length;
+	processed_length += part_length;
+	int offset = 0;
+
+	if (position > 0 && out_symbols[position - 1] == part_symbols[0]) {
+		out_runs[position - 1] += part_runs[0];
+		offset = 1;
+		processed_length -= 1;
+		part_length -= 1;
+	}
+
+	memcpy(out_symbols + position, part_symbols + offset, sizeof(char)*part_length);
+	memcpy(out_runs + position, part_runs + offset, sizeof(int)*part_length);
+
+	free(part_symbols);
+	free(part_runs);
+
+	*out_length = processed_length;
+	*symbols = (char*)_realloc(out_symbols, sizeof(char) * processed_length);
+	*runs = (int*)_realloc(out_runs, sizeof(int) * processed_length);
 }
