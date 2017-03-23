@@ -114,8 +114,8 @@ void rle_large_data(int megabytes) {
 
 int main()
 {
-	run_tests();
-	rle_small_data();
-	rle_large_data(100);
+	//run_tests();
+	//rle_small_data();
+	rle_large_data(500);
 	return EXIT_SUCCESS;
 }

@@ -15,6 +15,11 @@
 #include "../kernels/symbols.h"
 #include "../kernels/counts.h"
 
+#include <thrust/scan.h>
+#include <thrust/execution_policy.h>
+
+//using namespace thrust;
+
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length);
 void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length);
 
@@ -45,7 +50,13 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 	_cudaDeviceSynchronize("cudaMask");
 
 	// SCAN MASK
-	cudaScanGpuMem(d_mask, length, true);
+	//cudaScanGpuMem(d_mask, length, true);
+
+	thrust::inclusive_scan(thrust::device, d_mask, d_mask + length, d_mask);
+	
+
+	//thrust::inclusive_scan(d_mask, d_mask+length, d_mask); // in-place scan
+
 	
 	/*
 	int *c_data = (int*)_malloc(sizeof(int)*length);
