@@ -9,10 +9,10 @@
 #include "../utils/c_utils.h"
 #include "../utils/consts.h"
 
-__global__ void maskKernel(char *data, int *mask);
+__global__ void maskKernel(char *data, int *mask, int length);
 void cudaMask(char *data, const int length, int **mask);
 
-__global__ void maskKernel(char *data, int *mask) {
+__global__ void maskKernel(char *data, int *mask, int length) {
 	const int threadCount = 1024;
 	const int log_1024 = 10;
 
@@ -21,10 +21,14 @@ __global__ void maskKernel(char *data, int *mask) {
 	int id = threadIdx.x;
 	int offset = blockIdx.x * threadCount;
 
-	if (tbid == 0) mask[tbid] = 1;
-	else {
-		mask[tbid] = !(data[tbid] == data[tbid - 1]);
+	while (tbid < length) {
+		if (tbid == 0) mask[tbid] = 1;
+		else {
+			mask[tbid] = !(data[tbid] == data[tbid - 1]);
+		}
+		tbid += blockCount*threadCount;
 	}
+
 }
 
 // CAN SERVE A MAX OF 65535 KB OF DATA
@@ -43,7 +47,7 @@ void cudaMask(char *data, const int length, int **mask) {
 
 	_cudaMalloc((void**)&dev_mask, blockCount * MAX_THREADS_PER_BLOCK * sizeof(int));
 
-	maskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, dev_mask);
+	maskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(dev_data, dev_mask,length);
 
 	_cudaDeviceSynchronize("cudaMask");
 

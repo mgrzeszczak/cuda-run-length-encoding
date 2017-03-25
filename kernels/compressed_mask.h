@@ -23,16 +23,19 @@ __global__ void compressedMaskKernel(int *mask, int *compressedMask, int *compre
 
 	if (tbid >= length) return;
 
-	if (tbid == 0) {
-		compressedMask[mask[tbid] - 1] = 0;
-	}
-	else if (mask[tbid-1]!=mask[tbid]) {
-		compressedMask[mask[tbid] - 1] = tbid;
-	}
+	while (tbid < length) {
+		if (tbid == 0) {
+			compressedMask[mask[tbid] - 1] = 0;
+		}
+		else if (mask[tbid - 1] != mask[tbid]) {
+			compressedMask[mask[tbid] - 1] = tbid;
+		}
 
-	if (tbid == length - 1) {
-		compressedMask[mask[tbid]] = length;
-		*compressedLength = mask[tbid]+1;
+		if (tbid == length - 1) {
+			compressedMask[mask[tbid]] = length;
+			*compressedLength = mask[tbid] + 1;
+		}
+		tbid += blockCount*threadCount;
 	}
 }
 

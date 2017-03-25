@@ -23,9 +23,13 @@ __global__ void symbolsKernel(int *compressedMask, char *data, int maskLength, c
 
 	if (tbid > maskLength - 1) return;
 	
-	if (tbid < maskLength - 1) {
-		symbols[tbid] = data[compressedMask[tbid]];
+	while (tbid < maskLength) {
+		if (tbid < maskLength - 1) {
+			symbols[tbid] = data[compressedMask[tbid]];
+		}
+		tbid += blockCount*threadCount;
 	}
+	
 }
 
 

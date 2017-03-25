@@ -23,9 +23,13 @@ __global__ void countsKernel(int *compressedMask, int *counts, int length) {
 
 	if (tbid > length - 1) return;
 
-	if (tbid > 0) {
-		counts[tbid - 1] = compressedMask[tbid] - compressedMask[tbid - 1];
+	while (tbid < length) {
+		if (tbid > 0) {
+			counts[tbid - 1] = compressedMask[tbid] - compressedMask[tbid - 1];
+		}
+		tbid += blockCount*threadCount;
 	}
+	
 }
 
 

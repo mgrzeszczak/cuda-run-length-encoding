@@ -84,9 +84,10 @@ void rle_large_data(int megabytes) {
 	char *data = (char*)_malloc(sizeof(char) * size);
 
 	printf("Generating %d MB of data...\n", megabytes);
-	for (int i = 0; i < size; i++) {
+	/*for (int i = 0; i < size; i++) {
 		data[i] = rand() % 4 + 'a';
-	}
+	}*/
+	memset(data, 'a', size);
 	
 	char *g_symbols;
 	int g_length;
