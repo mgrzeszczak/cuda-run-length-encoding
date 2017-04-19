@@ -22,6 +22,7 @@
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length);
 void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length);
+void cpu_rle(char *data, int length, char** compressed, int** lengths, int *out_length);
 
 void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length) {
 	// GPU MEMORY
@@ -213,4 +214,29 @@ void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_l
 	*out_length = processed_length;
 	*symbols = (char*)_realloc(out_symbols, sizeof(char) * processed_length);
 	*runs = (int*)_realloc(out_runs, sizeof(int) * processed_length);
+}
+
+void cpu_rle(char *data, int length, char** compressed, int** lengths, int *out_length) {
+	*compressed = (char*)_malloc(sizeof(char)*length);
+	*lengths = (int*)_malloc(sizeof(int)*length);
+
+	char c = data[0];
+	int count = 1;
+	int position = 0;
+	for (int i = 1; i < length; i++) {
+
+		if (data[i] == c) {
+			count++;
+			continue;
+		}
+
+		(*compressed)[position] = c;
+		(*lengths)[position] = count;
+
+		count = 1;
+		c = data[i];
+		position++;
+	}
+
+	*out_length = position + 1;
 }

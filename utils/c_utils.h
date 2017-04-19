@@ -13,3 +13,7 @@ void* _realloc(void *data, int size) {
 	if (mem == NULL) ERR("Failed to realloc ON CPU\n");
 	return mem;
 }
+
+float randf() {
+	return (float)rand() / (float)(RAND_MAX);
+}
