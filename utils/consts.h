@@ -7,9 +7,8 @@
 /******************************************
 				CONSTANTS
 ******************************************/
-#define KB 1024
-#define MB KB*1024
-#define MAX_THREADS_PER_BLOCK 1024
-#define MAX_BLOCKS_PER_GRID 65535
-
-#define DEBUG false
+const bool DEBUG = false;
+const int KB = 1024;
+const int MB = 1024 * 1024;
+const int MAX_THREADS_PER_BLOCK = 1024;
+const int MAX_BLOCKS_PER_GRID = 65535;

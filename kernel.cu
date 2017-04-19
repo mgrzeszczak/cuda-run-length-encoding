@@ -33,12 +33,13 @@ void run_tests() {
 }
 
 char* generate_data(int size, float compressability) {
+	srand(time(0));
 	int alphabet_length = 26;
 	char *data = (char*)_malloc(sizeof(char)*size);
 	data[0] = 'a' + rand() % alphabet_length;
 	for (int i = 1; i < size; i++) {
 		float r = randf();
-		data[i] = r < compressability ? data[i - 1] : ('a' + rand() % alphabet_length);
+		data[i] = (r <= compressability) ? (data[i - 1]) : ('a' + rand() % alphabet_length);
 	}
 	return data;
 }
@@ -59,8 +60,7 @@ void measure_performance(void(*fun)(char*,int,char**,int**,int*),char* data, int
 }
 
 void run_comparison(int size, float compressability) {
-	int sizeMb = size >> 20;
-	printf("Generating %d MB of data with %.2f %% compressability...\n", sizeMb,compressability*100);
+	printf("Generating %d MB of data with %.2f %% compressability...\n", size/MB,compressability*100);
 	char *data = generate_data(size,compressability);
 	printf("Running performance tests...\n");
 	measure_performance(&parallel_rle, data, size,"GPU VERSION");
