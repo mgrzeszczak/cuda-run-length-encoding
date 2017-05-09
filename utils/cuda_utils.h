@@ -37,11 +37,13 @@ void _cudaMemcpy(void *dest, const void *src, size_t size, cudaMemcpyKind kind) 
 void _cudaDeviceSynchronize(char* s) {
 	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
-		ERR("%s launch failed: %s\n",s, cudaGetErrorString(cudaStatus));
+		printf("%s launch failed: %s\n", s, cudaGetErrorString(cudaStatus));
+		ERR("launch failed");
 	}
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
-		ERR("cudaDeviceSynchronize returned error code %d after launching %s!\n",cudaStatus,s);
+		printf("cudaDeviceSynchronize returned error code %d after launching %s!\n",cudaStatus,s);
+		ERR("cudaDeviceSynchronize");
 	}
 }
 

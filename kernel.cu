@@ -80,7 +80,7 @@ int main()
 {
 	int sizeMb;
 	float compressability;
-	run_tests();
+	//run_tests();
 	read_arguments(&sizeMb, &compressability);
 	run_comparison(sizeMb*MB,compressability);
 	return EXIT_SUCCESS;

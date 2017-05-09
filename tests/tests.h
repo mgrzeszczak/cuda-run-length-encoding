@@ -54,7 +54,10 @@ void test_mask(void(*cudaMask)(char *, const int, int **)) {
 				sum += mask[i];
 			}
 			
-			if (sum != expected) ERR("test_scan %d - FAILED\n", m*i+j+1);
+			if (sum != expected) {
+				printf("test_scan %d - FAILED\n", m*i + j + 1);
+				ERR("test_scan");
+			}
 			else printf("test_mask [%d] - SUCCESS\n", m*i+j+1);
 
 			free(data);
