@@ -13,8 +13,8 @@ __global__ void compressedMaskKernel(int *mask, int *compressedMask, int *compre
 void cudaCompressedMask(int *mask, const int length, int **compressedMask, int *compressedLength);
 
 __global__ void compressedMaskKernel(int *mask, int *compressedMask, int *compressedLength, int length) {
-	const int threadCount = 1024;
-	const int log_1024 = 10;
+	const int threadCount = 512;
+	const int log_1024 = 9;
 
 	int blockCount = gridDim.x;
 	int tbid = blockIdx.x*threadCount + threadIdx.x;

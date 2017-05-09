@@ -33,7 +33,7 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 	char *d_symbols;
 	int *d_runs;
 
-	_cudaSetDevice(0);
+	//_cudaSetDevice(0);
 
 	int blockCount = ceil(((float)(length) / MAX_THREADS_PER_BLOCK));
 	if (blockCount > MAX_BLOCKS_PER_GRID) blockCount = MAX_BLOCKS_PER_GRID;
@@ -42,13 +42,14 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 	int arrLen = blockCount*MAX_THREADS_PER_BLOCK;
 	if (arrLen < length) arrLen = length;
 
-	_cudaPrintMemory();
+	//_cudaPrintMemory();
 	// allocate gpu memory
+	
 	_cudaMalloc((void**)&d_data, arrLen*sizeof(char)); // 150MB
 	_cudaMalloc((void**)&d_mask, arrLen*sizeof(int)); // 600MB
 
 	// total 750 MB
-	_cudaPrintMemory();
+	//_cudaPrintMemory();
 
 	_cudaMemcpy(d_data, data, length * sizeof(char), cudaMemcpyHostToDevice);
 
@@ -58,7 +59,6 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 
 	// SCAN MASK
 	//cudaScanGpuMem(d_mask, length, true);
-
 	thrust::inclusive_scan(thrust::device, d_mask, d_mask + length, d_mask);
 	
 
@@ -99,20 +99,19 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 
 	_cudaMemcpy(d_mask, c_scanned, sizeof(int)*length, cudaMemcpyHostToDevice);
 	*/
-	_cudaPrintMemory();
+	//_cudaPrintMemory();
 	// COMPRESS MASK
 	_cudaMalloc((void**)&d_compressed_mask, arrLen*sizeof(int)); // 600MB
 	_cudaMalloc((void**)&d_compressed_length, sizeof(int));
 
 	// total 1350MB - max
-	_cudaPrintMemory();
-
+	//_cudaPrintMemory();
 	compressedMaskKernel << <blockCount, MAX_THREADS_PER_BLOCK >> >(d_mask, d_compressed_mask, d_compressed_length, length);
 	_cudaDeviceSynchronize("cudaCompressedMask");
 
 	cudaFree(d_mask);
 	// total 750MB
-	_cudaPrintMemory();
+	//_cudaPrintMemory();
 
 	int compressedLength;
 	_cudaMemcpy(&compressedLength, d_compressed_length, sizeof(int), cudaMemcpyDeviceToHost);
@@ -142,19 +141,19 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 
 	cudaFree(d_runs);
 	cudaFree(d_symbols);
-	_cudaPrintMemory();
+	//_cudaPrintMemory();
 }
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length) {
-
 	size_t mem_free;
 	size_t mem_total;
 	cudaMemGetInfo(&mem_free, &mem_total);
 	mem_free /= MB;
 	mem_total /= MB;
-
-	int step = (mem_free) / 10 * MB;
-	int stepMB = step / MB;
+	//long step = 200*MB;
+	long step = ((long)mem_free) / 10 * MB;
+	if (step > length) step = length;
+	long stepMB = step / MB;
 	//printf("Chunk size: %d MB\n",stepMB);
 
 	int inputLength = length;
@@ -169,7 +168,6 @@ void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_l
 	char *part_symbols = (char*)_malloc(sizeof(char)*step);
 	int *part_runs = (int*)_malloc(sizeof(int)*step);
 	int part_length;
-
 	while (length > step) {
 
 		rle_batch(data, step, part_symbols, part_runs, &part_length);

@@ -13,8 +13,8 @@ __global__ void countsKernel(int *compressedMask, int *counts, int length);
 void cudaCounts(int *compressedMask, int length, int **counts);
 
 __global__ void countsKernel(int *compressedMask, int *counts, int length) {
-	const int threadCount = 1024;
-	const int log_1024 = 10;
+	const int threadCount = 512;
+	const int log_1024 = 9;
 
 	int blockCount = gridDim.x;
 	int tbid = blockIdx.x*threadCount + threadIdx.x;

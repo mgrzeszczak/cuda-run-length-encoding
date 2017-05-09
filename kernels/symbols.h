@@ -13,8 +13,8 @@ __global__ void symbolsKernel(int *compressedMask, char *data, int maskLength, c
 void cudaSymbols(int *compressedMask, int maskLength, char *data, int dataLength, char **symbols);
 
 __global__ void symbolsKernel(int *compressedMask, char *data, int maskLength, char *symbols) {
-	const int threadCount = 1024;
-	const int log_1024 = 10;
+	const int threadCount = 512;
+	const int log_1024 = 9;
 
 	int blockCount = gridDim.x;
 	int tbid = blockIdx.x*threadCount + threadIdx.x;

@@ -49,6 +49,7 @@ void measure_performance(void(*fun)(char*,int,char**,int**,int*),char* data, int
 	int length;
 	int *runs;
 	printf("\n%s\n", label);
+	printf("Starting clock...\n");
 	clock_t start = clock();
 	fun(data, size, &symbols, &runs, &length);
 	clock_t end = clock();
@@ -82,6 +83,7 @@ int main()
 	float compressability;
 	//run_tests();
 	read_arguments(&sizeMb, &compressability);
+	_cudaSetDevice(0);
 	run_comparison(sizeMb*MB,compressability);
 	return EXIT_SUCCESS;
 }

@@ -13,8 +13,8 @@ __global__ void maskKernel(char *data, int *mask, int length);
 void cudaMask(char *data, const int length, int **mask);
 
 __global__ void maskKernel(char *data, int *mask, int length) {
-	const int threadCount = 1024;
-	const int log_1024 = 10;
+	const int threadCount = 512;
+	const int log_1024 = 9;
 
 	int blockCount = gridDim.x;
 	int tbid = blockIdx.x*threadCount + threadIdx.x;
