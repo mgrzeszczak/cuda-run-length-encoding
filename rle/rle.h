@@ -145,13 +145,13 @@ void rle_batch(char *data, int length, char *symbols, int* runs, int *out_length
 }
 
 void parallel_rle(char *data, int length, char **symbols, int** runs, int *out_length) {
-	size_t mem_free;
-	size_t mem_total;
-	cudaMemGetInfo(&mem_free, &mem_total);
-	mem_free /= MB;
-	mem_total /= MB;
-	//long step = 200*MB;
-	long step = ((long)mem_free) / 10 * MB;
+	//size_t mem_free;
+	//size_t mem_total;
+	//cudaMemGetInfo(&mem_free, &mem_total);
+	//mem_free /= MB;
+	//mem_total /= MB;
+	long step = 500*MB;
+	//long step = ((long)mem_free) / 10 * MB;
 	if (step > length) step = length;
 	long stepMB = step / MB;
 	//printf("Chunk size: %d MB\n",stepMB);
